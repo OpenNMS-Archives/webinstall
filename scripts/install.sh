@@ -499,6 +499,10 @@ if [ -d "$PGDATA" ]; then
 			echo "- restarting PostgreSQL"
 			$INITDIR/postgresql stop
 			$INITDIR/postgresql start
+		elif [ -x $INITDIR/rhdb ]; then
+			echo "- restarting RedHatDB (postgresql)"
+			$INITDIR/rhdb stop
+			$INITDIR/rhdb start
 		fi
 	else
 		success "ok"
