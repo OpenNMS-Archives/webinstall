@@ -93,6 +93,11 @@ case "$INSTALL_PLATFORM" in
   I was unable to determine what platform you are running on, or OpenNMS
   does not have pre-built binaries for your platform.
 
+  Currently we support Red Hat Linux 7, 8 and 9, plus Mandrake 8 and 9
+  and Mac OSX using this installer. Support for Debian, SuSE, Solaris 
+  and others can be found on the opennms.org website and in the FAQ:
+  http://faq.opennms.org
+
   Your platform type was detected as: $INSTALL_PLATFORM
 
   Please e-mail install-help@opennms.org with this platform type text and any
