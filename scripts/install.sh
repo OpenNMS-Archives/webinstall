@@ -65,6 +65,9 @@ case "$INSTALL_PLATFORM" in
 	linux-i386-redhat-7*)
 		success $INSTALL_PLATFORM
 		;;
+	linux-i386-redhat-8*)
+		warning $INSTALL_PLATFORM
+		;;
 	linux-i386-mandrake-8)
 		success $INSTALL_PLATFORM
 		;;
@@ -102,6 +105,17 @@ END_UNKNOWN_PLATFORM
 		;;
 
 esac
+
+if [ "$INSTALL_PLATFORM" = "linux-i386-redhat-8" ]; then
+	echo ""
+	echo "*** Warning: ***"
+	echo "If you are using the PostgreSQL version that comes with"
+	echo "RedHat 8 (which is, in fact, recommended), you may need"
+	echo "to do some additional configuration if you get errors"
+	echo "about the pg_hba.conf file.  See the FAQ and release"
+	echo "notes for details."
+	echo ""
+fi
 
 ##############################################################################
 # get the RPM version if any
