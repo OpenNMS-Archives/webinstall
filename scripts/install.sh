@@ -297,7 +297,7 @@ if [ "$INSTALL_METHOD" = "urpmi" ]; then
 	# We only allow for the time being unstable to be installed
 	# experimental ...
 
-	echo -e "- adding in urpmi sources from OpenNMS Stable... \c";
+	echo -e "- adding in urpmi sources from OpenNMS Unstable... \c";
 	urpmi.addmedia opennms ftp://ftp.opennms.org/pub/releases/opennms/unstable/${INSTALL_PLATFORM}/RPMS with ./hdlist.cz
 	urpmi.update opennms > /dev/null 2>&1
 	success "ok"
@@ -305,10 +305,10 @@ if [ "$INSTALL_METHOD" = "urpmi" ]; then
 	echo -e "- installing dependencies... "
 	urpmi --media opennms --auto sharutils metamail
 	urpmi --media opennms --auto rrdtool librrdtool0 librrdtool0-devel
-	urpmi --media opennms --auto postgresql-libs postgresql-server postgresql
-	urpmi --media opennms --auto postgresql-contrib postgresql-devel postgresql-docs postgresql-jdbc postgresql-odbc postgresql-perl postgresql-tcl postgresql-test postgresql-tk
+	urpmi --media opennms --auto libpgsql postgresql-server postgresql
+	urpmi --media opennms --auto postgresql-devel postgresql-jdbc 
 	urpmi --media opennms --auto perl-DBI perl-DBD-Pg
-	urpmi --media opennms --auto --no-verify-rpm tomcat4 tomcat4-webapps tomcat4-admin-webapps
+	urpmi --media opennms --auto --no-verify-rpm tomcat4 tomcat4-webapps 
 	success "ok"
 
 	echo -e "- installing OpenNMS... " 
