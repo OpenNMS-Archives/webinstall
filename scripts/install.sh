@@ -129,9 +129,9 @@ case "$INSTALL_PLATFORM" in
 			echo "the upgrade has completed."
 			echo ""
 
-			if [ -f /etc/tomcat4/conf/tomcat4.conf ]; then
+			if [ ! -L /etc/tomcat4/conf ]; then
 				mv /etc/tomcat4/conf/tomcat4.conf /etc/tomcat4/tomcat4.conf
-				rmdir /etc/tomcat4/conf || echo "warning: /etc/tomcat4/conf is not empty!"
+				rmdir /etc/tomcat4/conf && ln -s /etc/tomcat4 /etc/tomcat4/conf || echo "warning: /etc/tomcat4/conf is not empty!"
 			fi
 			
 			if [ ! -L /var/tomcat4/conf ]; then
