@@ -397,8 +397,8 @@ END_WHICH_VERSION
 
 	if [ "$INSTALL_METHOD" != "fink" ]; then
 		# First, we install tomcat so we know the ordering is right.
-		echo "apt-get install tomcat4 tomcat4-manual tomcat4-webapps rrdtool"
-		apt-get -y install tomcat4 tomcat4-manual tomcat4-webapps rrdtool
+		echo "apt-get install tomcat4 tomcat4-webapps rrdtool"
+		apt-get -y install tomcat4 tomcat4-webapps rrdtool
 		if [ $? -gt 0 ]; then
 			cat <<END
 
