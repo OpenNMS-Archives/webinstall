@@ -106,16 +106,49 @@ END_UNKNOWN_PLATFORM
 
 esac
 
-if [ "$INSTALL_PLATFORM" = "linux-i386-redhat-8" ]; then
-	echo ""
-	echo "*** Warning: ***"
-	echo "If you are using the PostgreSQL version that comes with"
-	echo "RedHat 8 (which is, in fact, recommended), you may need"
-	echo "to do some additional configuration if you get errors"
-	echo "about the pg_hba.conf file.  See the FAQ and release"
-	echo "notes for details."
-	echo ""
-fi
+case "$INSTALL_PLATFORM" in
+	linux-i386-redhat*)
+		echo ""
+		echo "*** Warning: ***"
+		echo "If you are using the PostgreSQL version that comes with"
+		echo "RedHat 8 (which is, in fact, recommended), you may need"
+		echo "to do some additional configuration if you get errors"
+		echo "about the pg_hba.conf file.  See the FAQ and release"
+		echo "notes for details."
+		echo ""
+
+		TOMCAT_VERSION=`rpm -q --queryformat '%{version}' 2>/dev/null`
+		if [ "$TOMCAT_VERSION" = "4.0.3" ]; then
+			echo "*** Warning: ***"
+			echo "You have a tomcat version that has issues with"
+			echo "upgrading to the newest official tomcat RPM"
+			echo "version.  I am going to move some things out of"
+			echo "the way to make sure the upgrade goes cleanly,"
+			echo "but you may need to do some manual handling of"
+			echo ".rpmnew or .rpmorig files in /etc/tomcat4 when"
+			echo "the upgrade has completed."
+			echo ""
+
+			if [ -f /etc/tomcat4/conf/tomcat4.conf ]; then
+				mv /etc/tomcat4/conf/tomcat4.conf /etc/tomcat4/tomcat4.conf
+				rmdir /etc/tomcat4/conf || echo "warning: /etc/tomcat4/conf is not empty!"
+			fi
+			
+			if [ ! -L /var/tomcat4/conf ]; then
+				mkdir -p /etc/tomcat4
+				mv /var/tomcat4/conf/* /etc/tomcat4/
+				rmdir /var/tomcat4/conf && ln -s /etc/tomcat4 /var/tomcat4/conf || echo "warning: couldn't remove /var/tomcat4/conf directory!"
+			fi
+			
+			if [ ! -L /var/tomcat4/work ]; then
+				mkdir -p /var/cache/tomcat4/work
+				rm -rf /var/tomcat4/work && ln -s /var/cache/tomcat4/work /var/tomcat4/work || echo "warning: couldn't move work to /var/cache/tomcat4/work!"
+			fi
+
+		fi
+
+		;;
+esac
 
 ##############################################################################
 # get the RPM version if any
@@ -249,12 +282,12 @@ elif [ "$INSTALL_METHOD" = "fink" ]; then
 fi
 
 if [ "$INSTALL_METHOD" = "fink" ]; then
-	if [ `grep /opennms "$SOURCES_LIST" 2>/dev/null | wc -l` -eq 0 ]; then
+	if [ `grep opennms "$SOURCES_LIST" 2>/dev/null | wc -l` -eq 0 ]; then
 		echo "" >> "$SOURCES_LIST"
 		echo "# OpenNMS binary distribution" >> "$SOURCES_LIST"
 		echo "deb http://$HOST/apt $INSTALL_PLATFORM main" >> "$SOURCES_LIST"
 	fi
-elif [ `grep /opennms "$SOURCES_LIST" 2>/dev/null | grep -E '(stable|unstable|snapshot)' | wc -l` -eq 0 ]; then
+elif [ `grep opennms "$SOURCES_LIST" 2>/dev/null | grep -E '(stable|unstable|snapshot)' | wc -l` -eq 0 ]; then
 
 	cat << END_WHICH_VERSION
   It is time to set up the location that APT will install OpenNMS from.
