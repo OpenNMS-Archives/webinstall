@@ -50,7 +50,14 @@ get_file () {
 	if find_exe lynx; then
 		echo -e "(trying lynx) \c"
 		$GET_FILE -source "ftp://$HOST/pub/$DIRECTORY/$1" > "$STRIPPED" 2>/dev/null
-		if grep -qi "404 not found" "$1" >/dev/null 2>&1; then
+
+		exit
+		#
+		# fixed little bug here where $1 was used and not $STRIPPED
+		# in the grep
+		#
+		#if grep -qi "404 not found" "$1" >/dev/null 2>&1; then
+		if grep -qi "404 not found" "$STRIPPED" >/dev/null 2>&1; then
 			rm -f $1
 		else
 			return
