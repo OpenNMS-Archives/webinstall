@@ -456,7 +456,7 @@ fi
 if [ -d "$PGDATA" ]; then
 	FAILURES=0
 	UPDATES=0
-	if [ `cat $PGDATA/postgresql.conf 2>/dev/null | grep -v '^#' | grep -v '^$' | grep tcpip_socket | grep true | wc -l` -eq 0 ]; then
+	if [ `cat $PGDATA/postgresql.conf 2>/dev/null | grep -v '^#' | grep -v '^$' | sed 's/#.*$//' | grep tcpip_socket | grep true | wc -l` -eq 0 ]; then
 		echo "tcpip_socket = true" >> $PGDATA/postgresql.conf
 		if [ $? -gt 0 ]; then
 			let FAILURES="$FAILURES+1"
@@ -464,7 +464,7 @@ if [ -d "$PGDATA" ]; then
 			let UPDATES="$UPDATES+1"
 		fi
 	fi
-	CONNECTIONS="`cat $PGDATA/postgresql.conf 2>/dev/null | grep -v '^#' | grep -v '^$' | grep max_connections | awk -F= '{ print $2 }'`"
+	CONNECTIONS="`cat $PGDATA/postgresql.conf 2>/dev/null | grep -v '^#' | grep -v '^$' | sed 's/#.*$//' | grep max_connections | awk -F= '{ print $2 }'`"
 	if [ -z "$CONNECTIONS" ]; then
 		CONNECTIONS=0
 	fi
@@ -476,7 +476,7 @@ if [ -d "$PGDATA" ]; then
 			let UPDATES="$UPDATES+1"
 		fi
 	fi
-	BUFFERS="`cat $PGDATA/postgresql.conf 2>/dev/null | grep -v '^#' | grep -v '^$' | grep shared_buffers | awk -F= '{ print $2 }'`"
+	BUFFERS="`cat $PGDATA/postgresql.conf 2>/dev/null | grep -v '^#' | grep -v '^$' | sed 's/#.*$//' | grep shared_buffers | awk -F= '{ print $2 }'`"
 	if [ -z "$BUFFERS" ]; then
 		BUFFERS=0
 	fi
