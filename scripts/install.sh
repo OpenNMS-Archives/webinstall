@@ -62,6 +62,11 @@ case "$INSTALL_PLATFORM" in
 	linux-i386-mandrake-8)
 		success $INSTALL_PLATFORM
 		;;
+	darwin-Power*)
+		INSTALL_PLATFORM="darwin-powerpc"
+		INSTALL_METHOD="fink"
+		success $INSTALL_PLATFORM
+		;;
 #	linux-i386-2.4)
 #		warning $INSTALL_PLATFORM
 #		;;
@@ -107,6 +112,8 @@ fi
 
 echo -e "- installation method: \c"
 if [ "$INSTALL_METHOD" = "rpm" ]; then
+	success $INSTALL_METHOD
+elif [ "$INSTALL_METHOD" = "fink" ]; then
 	success $INSTALL_METHOD
 else
 	warning $INSTALL_METHOD
@@ -174,37 +181,60 @@ INITDIR=`find_init`
 # Bootstrap APT
 ##############################################################################
 
-echo -e "- checking for apt... \c";
-if `rpm -q apt >/dev/null 2>&1`; then
-	success "found"
-	FIRST_TIME_APT=0
-else
-	warning "not found"
-	APT_INSTALLED=0
-	#for platform in $FULL_INSTALL_PLATFORM $INSTALL_PLATFORM; do
-	for platform in $INSTALL_PLATFORM; do
-		echo -e "- checking for apt-$platform.rpm download... \c"
-		if get_file "apt-$platform.rpm" >/dev/null 2>&1; then
-			success
-			install_rpm "apt-$platform.rpm"
-			if [ $? -eq 0 ]; then
-				APT_INSTALLED=1
-				break
+if [ "$INSTALL_METHOD" = "rpm" ]; then
+	echo -e "- checking for apt... \c";
+	if `rpm -q apt >/dev/null 2>&1`; then
+		success "found"
+		FIRST_TIME_APT=0
+	else
+		warning "not found"
+		APT_INSTALLED=0
+		#for platform in $FULL_INSTALL_PLATFORM $INSTALL_PLATFORM; do
+		for platform in $INSTALL_PLATFORM; do
+			echo -e "- checking for apt-$platform.rpm download... \c"
+			if get_file "apt-$platform.rpm" >/dev/null 2>&1; then
+				success
+				install_rpm "apt-$platform.rpm"
+				if [ $? -eq 0 ]; then
+					APT_INSTALLED=1
+					break
+				fi
+			else
+				warning "not found"
 			fi
-		else
-			warning "not found"
+		done
+		if [ "$APT_INSTALLED" -eq 0 ]; then
+			echo "Unable to get APT!  Please report this to install-help@opennms.org"
+			echo "or open a bug on the OpenNMS bugzilla!"
+			exit 1
 		fi
-	done
-	if [ "$APT_INSTALLED" -eq 0 ]; then
-		echo "Unable to get APT!  Please report this to install-help@opennms.org"
-		echo "or open a bug on the OpenNMS bugzilla!"
+		FIRST_TIME_APT=1
+	fi
+	echo
+	SOURCES_LIST="/etc/apt/sources.list"
+elif [ "$INSTALL_METHOD" = "fink" ]; then
+	echo -e "- checking for apt... \c"
+	if [ -x /sw/bin/apt-get ]; then
+		success "found"
+		SOURCES_LIST="/sw/etc/apt/sources.list"
+	else
+		warning "not found"
+		echo ""
+		echo "I didn't find apt!  Either you do not have Fink installed, or"
+		echo "you have it installed in a non-standard location.  In the first"
+		echo "case, please download fink from http://fink.sf.net/ otherwise"
+		echo "you will need to build from source the usual way."
 		exit 1
 	fi
-	FIRST_TIME_APT=1
 fi
-echo
 
-if [ `grep /opennms /etc/apt/sources.list 2>/dev/null | grep -E '(stable|unstable|snapshot)' | wc -l` -eq 0 ]; then
+if [ "$INSTALL_METHOD" = "fink" ]; then
+	if [ `grep /opennms "$SOURCES_LIST" 2>/dev/null | wc -l` -eq 0 ]; then
+		echo "" >> "$SOURCES_LIST"
+		echo "# OpenNMS binary distribution" >> "$SOURCES_LIST"
+		echo "deb http://$HOST/apt $INSTALL_PLATFORM/opennms main" >> "$SOURCES_LIST"
+	fi
+elif [ `grep /opennms "$SOURCES_LIST" 2>/dev/null | grep -E '(stable|unstable|snapshot)' | wc -l` -eq 0 ]; then
 
 	cat << END_WHICH_VERSION
   It is time to set up the location that APT will install OpenNMS from.
@@ -266,16 +296,21 @@ echo "apt-get update"
 apt-get update
 
 if [ "$INSTALL_TYPE" = "full" ]; then
-	PACKAGES="opennms opennms-webapp opennms-docs"
+	if [ "$INSTALL_METHOD" = "fink" ]; then
+		PACKAGES="opennms"
+	else
+		PACKAGES="opennms opennms-webapp opennms-docs"
+	fi
 else
 	PACKAGES="opennms-webapp"
 fi
 
-# First, we install tomcat so we know the ordering is right.
-echo "apt-get install tomcat4 tomcat4-manual tomcat4-webapps rrdtool"
-apt-get -y install tomcat4 tomcat4-manual tomcat4-webapps rrdtool
-if [ $? -gt 0 ]; then
-	cat <<END
+if [ "$INSTALL_METHOD" != "fink" ]; then
+	# First, we install tomcat so we know the ordering is right.
+	echo "apt-get install tomcat4 tomcat4-manual tomcat4-webapps rrdtool"
+	apt-get -y install tomcat4 tomcat4-manual tomcat4-webapps rrdtool
+	if [ $? -gt 0 ]; then
+		cat <<END
 
   ERROR!!!  APT was unable to install your packages.
   Most often this is because of a missing JDK.
@@ -283,9 +318,10 @@ if [ $? -gt 0 ]; then
   Please resolve the issues listed above, and try again.
 
 END
-	exit 1
+		exit 1
+	fi
+	echo
 fi
-echo
 
 # Then, install the OpenNMS packages.
 echo "apt-get install $PACKAGES"
@@ -303,9 +339,11 @@ END
 fi
 echo
 
-if [ "$FIRST_TIME_APT" = "1" ]; then
-	echo "Rebuilding RPM database (this may take a few minutes)..."
-	rpm --rebuilddb
+if [ "$INSTALL_METHOD" = "rpm" ]; then
+	if [ "$FIRST_TIME_APT" = "1" ]; then
+		echo "Rebuilding RPM database (this may take a few minutes)..."
+		rpm --rebuilddb
+	fi
 fi
 
 ##############################################################################
@@ -368,9 +406,9 @@ if [ -d "$PGDATA" ]; then
 	fi
 else
 	warning "not found"
-	echo "  (set $PGDATA to the location of your PostgreSQL data directory"
+	echo "  (Set $PGDATA to the location of your PostgreSQL data directory"
 	echo "  and re-run this script to automatically configure PostgreSQL"
-	echo "  to work with OpenNMS)"
+	echo "  to work with OpenNMS.  This may not be necessary on all systems.)"
 fi
 
 ##############################################################################
@@ -393,11 +431,12 @@ cat << END_RELEASE_NOTES
 
 END_RELEASE_NOTES
 
-ask_question "Do you want me to try to start everything up?" "Y"
-if [ $? -lt 1 ]; then
-	[ -x $INITDIR/jbossmq ] && $INITDIR/jbossmq start
-	[ -x $INITDIR/opennms ] && $INITDIR/opennms start
-	[ -x $INITDIR/tomcat4 ] && $INITDIR/tomcat4 start
-	echo ""
+if [ "$INSTALL_METHOD" = "rpm" ]; then
+	ask_question "Do you want me to try to start everything up?" "Y"
+	if [ $? -lt 1 ]; then
+		[ -x $INITDIR/jbossmq ] && $INITDIR/jbossmq start
+		[ -x $INITDIR/opennms ] && $INITDIR/opennms start
+		[ -x $INITDIR/tomcat4 ] && $INITDIR/tomcat4 start
+	fi
 fi
 echo ""
