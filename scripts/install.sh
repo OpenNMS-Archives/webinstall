@@ -66,7 +66,10 @@ case "$INSTALL_PLATFORM" in
 		success $INSTALL_PLATFORM
 		;;
 	linux-i386-redhat-8*)
-		warning $INSTALL_PLATFORM
+		success $INSTALL_PLATFORM
+		;;
+	linux-i386-redhat-9*)
+		success $INSTALL_PLATFORM
 		;;
 	linux-i386-mandrake-8)
 		success $INSTALL_PLATFORM
