@@ -71,6 +71,10 @@ case "$INSTALL_PLATFORM" in
 	linux-i386-mandrake-8)
 		success $INSTALL_PLATFORM
 		;;
+	linux-i386-mandrake-9)
+		INSTALL_METHOD="urpmi"
+		success $INSTALL_PLATFORM
+		;;
 	darwin-Power*)
 		INSTALL_PLATFORM="darwin-powerpc"
 		INSTALL_METHOD="fink"
@@ -167,6 +171,8 @@ echo -e "- installation method: \c"
 if [ "$INSTALL_METHOD" = "rpm" ]; then
 	success $INSTALL_METHOD
 elif [ "$INSTALL_METHOD" = "fink" ]; then
+	success $INSTALL_METHOD
+elif [ "$INSTALL_METHOD" = "urpmi" ]; then
 	success $INSTALL_METHOD
 else
 	warning $INSTALL_METHOD
@@ -279,17 +285,48 @@ elif [ "$INSTALL_METHOD" = "fink" ]; then
 		echo "you will need to build from source the usual way."
 		exit 1
 	fi
-fi
 
-if [ "$INSTALL_METHOD" = "fink" ]; then
 	if [ `grep opennms "$SOURCES_LIST" 2>/dev/null | wc -l` -eq 0 ]; then
 		echo "" >> "$SOURCES_LIST"
 		echo "# OpenNMS binary distribution" >> "$SOURCES_LIST"
 		echo "deb http://$HOST/apt $INSTALL_PLATFORM main" >> "$SOURCES_LIST"
 	fi
-elif [ `grep opennms "$SOURCES_LIST" 2>/dev/null | grep -E '(stable|unstable|snapshot)' | wc -l` -eq 0 ]; then
+fi
 
-	cat << END_WHICH_VERSION
+if [ "$INSTALL_METHOD" = "urpmi" ]; then
+	# We only allow for the time being stable to be installed
+	# experimental ...
+
+	echo -e "- adding in urpmi sources from OpenNMS Stable... \c";
+	urpmi.addmedia opennms ftp://ftp.opennms.org/pub/releases/opennms/stable/${INSTALL_PLATFORM}/RPMS with ./hdlist.cz
+	urpmi.update opennms > /dev/null 2>&1
+	success "ok"
+
+	echo -e "- installing dependencies... "
+	urpmi --media opennms --auto sharutils metamail
+	urpmi --media opennms --auto rrdtool librrdtool0 librrdtool0-devel
+	urpmi --media opennms --auto postgresql-libs postgresql-server postgresql
+	urpmi --media opennms --auto postgresql-contrib postgresql-devel postgresql-docs postgresql-jdbc postgresql-odbc postgresql-perl postgresql-tcl postgresql-test postgresql-tk
+	urpmi --media opennms --auto perl-DBI perl-DBD-Pg
+	urpmi --media opennms --auto --no-verify-rpm tomcat4 tomcat4-webapps tomcat4-admin-webapps
+	success "ok"
+
+	echo -e "- installing OpenNMS... " 
+	if [ "$INSTALL_TYPE" == "full" ]; then
+		urpmi --media opennms --auto opennms opennms-docs opennms-webapp
+	else
+		urpmi --media opennms --auto opennms opennms-webapp
+	fi
+	success "ok"
+
+	echo -e "- removing urpmi sources for OpenNMS... \c"
+	urpmi.removemedia opennms > /dev/null 2>&1
+	success "ok"
+
+else
+	if [ `grep opennms "$SOURCES_LIST" 2>/dev/null | grep -E '(stable|unstable|snapshot)' | wc -l` -eq 0 -a "INSTALL_METHOD" = "rpm" ]; then
+
+		cat << END_WHICH_VERSION
   It is time to set up the location that APT will install OpenNMS from.
   There are 3 different releases of the code that you can tell APT to look
   for new packages in:
@@ -307,61 +344,78 @@ elif [ `grep opennms "$SOURCES_LIST" 2>/dev/null | grep -E '(stable|unstable|sna
 
 END_WHICH_VERSION
 
-	STABLE_TREE="stable"
-	UNSTABLE_TREE="stable unstable"
-	SNAPSHOT_TREE="stable unstable snapshot"
+		STABLE_TREE="stable"
+		UNSTABLE_TREE="stable unstable"
+		SNAPSHOT_TREE="stable unstable snapshot"
 
-	DEFAULT_TREE="1"
+		DEFAULT_TREE="1"
 
-	while /bin/true; do
-		ask_question "which tree would you like to install from?" $DEFAULT_TREE
-		APT_TREE="$RETURN"
-		if [ "$APT_TREE" = "1" ]; then
-			echo "# OpenNMS latest stable release" >> /etc/apt/sources.list
-			echo "rpm http://$HOST/apt $INSTALL_PLATFORM/opennms $STABLE_TREE" >> /etc/apt/sources.list
-			echo "rpm-src http://$HOST/apt $INSTALL_PLATFORM/opennms $STABLE_TREE" >> /etc/apt/sources.list
-			break
-		elif [ "$APT_TREE" = "2" ]; then
-			echo "# OpenNMS latest official release" >> /etc/apt/sources.list
-			echo "rpm http://$HOST/apt $INSTALL_PLATFORM/opennms $UNSTABLE_TREE" >> /etc/apt/sources.list
-			echo "rpm-src http://$HOST/apt $INSTALL_PLATFORM/opennms $UNSTABLE_TREE" >> /etc/apt/sources.list
-			break
-		elif [ "$APT_TREE" = "3" ]; then
-			echo "# OpenNMS latest snapshot or official release" >> /etc/apt/sources.list
-			echo "rpm http://$HOST/apt $INSTALL_PLATFORM/opennms $SNAPSHOT_TREE" >> /etc/apt/sources.list
-			echo "rpm-src http://$HOST/apt $INSTALL_PLATFORM/opennms $SNAPSHOT_TREE" >> /etc/apt/sources.list
-			break
-		else
-			echo "  Huh?  '$APT_TREE' wasn't one of the choices."
-		fi
-	done
-fi
-
-##############################################################################
-# Update APT cache and install
-##############################################################################
-
-echo
-echo "*** UPDATING APT CACHE AND INSTALLING RPMs ***"
-echo
-
-echo "apt-get update"
-apt-get update
-
-if [ "$INSTALL_TYPE" = "full" ]; then
-	if [ "$INSTALL_METHOD" = "fink" ]; then
-		PACKAGES="opennms"
-	else
-		PACKAGES="opennms opennms-webapp opennms-docs"
+		while /bin/true; do
+			ask_question "which tree would you like to install from?" $DEFAULT_TREE
+			APT_TREE="$RETURN"
+			if [ "$APT_TREE" = "1" ]; then
+				echo "# OpenNMS latest stable release" >> /etc/apt/sources.list
+				echo "rpm http://$HOST/apt $INSTALL_PLATFORM/opennms $STABLE_TREE" >> /etc/apt/sources.list
+				echo "rpm-src http://$HOST/apt $INSTALL_PLATFORM/opennms $STABLE_TREE" >> /etc/apt/sources.list
+				break
+			elif [ "$APT_TREE" = "2" ]; then
+				echo "# OpenNMS latest official release" >> /etc/apt/sources.list
+				echo "rpm http://$HOST/apt $INSTALL_PLATFORM/opennms $UNSTABLE_TREE" >> /etc/apt/sources.list
+				echo "rpm-src http://$HOST/apt $INSTALL_PLATFORM/opennms $UNSTABLE_TREE" >> /etc/apt/sources.list
+				break
+			elif [ "$APT_TREE" = "3" ]; then
+				echo "# OpenNMS latest snapshot or official release" >> /etc/apt/sources.list
+				echo "rpm http://$HOST/apt $INSTALL_PLATFORM/opennms $SNAPSHOT_TREE" >> /etc/apt/sources.list
+				echo "rpm-src http://$HOST/apt $INSTALL_PLATFORM/opennms $SNAPSHOT_TREE" >> /etc/apt/sources.list
+				break
+			else
+				echo "  Huh?  '$APT_TREE' wasn't one of the choices."
+			fi
+		done
 	fi
-else
-	PACKAGES="opennms-webapp"
-fi
 
-if [ "$INSTALL_METHOD" != "fink" ]; then
-	# First, we install tomcat so we know the ordering is right.
-	echo "apt-get install tomcat4 tomcat4-manual tomcat4-webapps rrdtool"
-	apt-get -y install tomcat4 tomcat4-manual tomcat4-webapps rrdtool
+	##############################################################################
+	# Update APT cache and install
+	##############################################################################
+
+	echo
+	echo "*** UPDATING APT CACHE AND INSTALLING RPMs ***"
+	echo
+
+	echo "apt-get update"
+	apt-get update
+
+	if [ "$INSTALL_TYPE" = "full" ]; then
+		if [ "$INSTALL_METHOD" = "fink" ]; then
+			PACKAGES="opennms"
+		else
+			PACKAGES="opennms opennms-webapp opennms-docs"
+		fi
+	else
+		PACKAGES="opennms-webapp"
+	fi
+
+	if [ "$INSTALL_METHOD" != "fink" ]; then
+		# First, we install tomcat so we know the ordering is right.
+		echo "apt-get install tomcat4 tomcat4-manual tomcat4-webapps rrdtool"
+		apt-get -y install tomcat4 tomcat4-manual tomcat4-webapps rrdtool
+		if [ $? -gt 0 ]; then
+			cat <<END
+
+  ERROR!!!  APT was unable to install your packages.
+  Most often this is because of a missing JDK.
+
+  Please resolve the issues listed above, and try again.
+
+END
+		exit 1
+		fi
+		echo
+	fi
+
+	# Then, install the OpenNMS packages.
+	echo "apt-get install $PACKAGES"
+	apt-get -y install $PACKAGES
 	if [ $? -gt 0 ]; then
 		cat <<END
 
@@ -374,28 +428,12 @@ END
 		exit 1
 	fi
 	echo
-fi
 
-# Then, install the OpenNMS packages.
-echo "apt-get install $PACKAGES"
-apt-get -y install $PACKAGES
-if [ $? -gt 0 ]; then
-	cat <<END
-
-  ERROR!!!  APT was unable to install your packages.
-  Most often this is because of a missing JDK.
-
-  Please resolve the issues listed above, and try again.
-
-END
-	exit 1
-fi
-echo
-
-if [ "$INSTALL_METHOD" = "rpm" ]; then
-	if [ "$FIRST_TIME_APT" = "1" ]; then
-		echo "Rebuilding RPM database (this may take a few minutes)..."
-		rpm --rebuilddb
+	if [ "$INSTALL_METHOD" = "rpm" ]; then
+		if [ "$FIRST_TIME_APT" = "1" ]; then
+			echo "Rebuilding RPM database (this may take a few minutes)..."
+			rpm --rebuilddb
+		fi
 	fi
 fi
 
@@ -484,7 +522,7 @@ cat << END_RELEASE_NOTES
 
 END_RELEASE_NOTES
 
-if [ "$INSTALL_METHOD" = "rpm" ]; then
+if [ "$INSTALL_METHOD" = "rpm" -o "$INSTALL_METHOD" = "urpmi" ]; then
 	ask_question "Do you want me to try to start everything up?" "Y"
 	if [ $? -lt 1 ]; then
 		[ -x $INITDIR/jbossmq ] && $INITDIR/jbossmq start
