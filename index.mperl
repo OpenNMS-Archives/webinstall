@@ -1,0 +1,32 @@
+#!/usr/bin/perl
+
+my $hostname;
+
+if ($ENV{SERVER_NAME} ne "") {
+  $hostname = $ENV{SERVER_NAME};
+} elsif ($ENV{HTTP_HOST} ne "") {
+  $hostname = $ENV{HTTP_HOST};
+} else {
+  $hostname = 'install.opennms.org';
+}
+
+print <<END;
+Status: 301 Moved Permanently
+Location: http://${hostname}/stable/
+URI: http://${hostname}/stable/
+Content-type: text/plain
+
+#!/bin/sh
+
+cat <<END;
+
+This installation script has changed, and it looks like your
+browser does not understand redirects correctly.
+
+Instead, please point your browser at:
+
+  http://${hostname}/unstable/
+    -or-
+  http://${hostname}/stable/
+
+END

@@ -1,0 +1,124 @@
+#!/bin/sh
+
+BASEDIR=`dirname $0`/opennms-install-`date +'%Y%m%d'`
+export DIRECTORY=utilities/install/web/unstable
+export HOST=ftp2.opennms.org
+INSTALL_FILES="../scripts/functions.sh ../scripts/install.sh"
+
+find_exe () {
+	[ -z "$1" ] && echo "get_file: you didn't specify a file to find!" && exit 1
+
+	FILE=`which $1 2>&1 | grep -v "no $1 in"`
+	if [ $? -ne 0 ]; then
+		return 1
+	fi
+
+	export GET_FILE=$FILE
+	return
+}
+
+get_file () {
+	[ -z "$1" ] && echo "get_file: you didn't specify a file to get!" && exit 1
+
+	FILENAME="$1"
+	STRIPPED=`echo $1 | sed -e 's#^.*/##'`
+
+	if find_exe snarf; then
+		echo -e "(trying snarf) \c"
+		$GET_FILE "ftp://$HOST/pub/$DIRECTORY/$1" >>install.log 2>&1
+		[ $? -eq 0 ] && return
+	fi
+
+	if find_exe wget; then
+		echo -e "(trying wget) \c"
+		$GET_FILE --passive-ftp "ftp://$HOST/pub/$DIRECTORY/$1" >>install.log 2>&1
+		[ $? -eq 0 ] && return
+	fi
+
+	if find_exe ncftpget; then
+		echo -e "(trying ncftpget) \c"
+		$GET_FILE "ftp://$HOST/pub/$DIRECTORY/$1" >>install.log 2>&1
+		[ $? -eq 0 ] && return
+	fi
+
+	if find_exe lwp-download; then
+		echo -e "(trying lwp-download) \c"
+		$GET_FILE "ftp://$HOST/pub/$DIRECTORY/$1" >>install.log 2>&1
+		[ -f $1 ] && return
+	fi
+
+	if find_exe lynx; then
+		echo -e "(trying lynx) \c"
+		$GET_FILE -source "ftp://$HOST/pub/$DIRECTORY/$1" > "$STRIPPED" 2>/dev/null
+		if grep -qi "404 not found" "$1" >/dev/null 2>&1; then
+			rm -f $1
+		else
+			return
+		fi
+	fi
+
+}
+
+run () {
+	if [ "$UID" -ne 0 ]; then
+		cat << END_ROOT
+
+  It appears you are not running this installation as root.  If you
+  are not root, I will be unable to install RPMs, nor will I be able
+  to install other files unless your user ID has the rights to
+  install to the target directory.
+
+  Installation will continue, but you may have issues if you don't
+  know what you're doing.  =)
+
+END_ROOT
+
+		echo -e "- press enter to continue... \c"
+		read blah < /dev/tty
+
+	fi
+
+	sh $DEBUG $1
+
+}
+
+if [ -z "$OPENNMS_LOCAL" ]; then
+
+	echo -e "- cleaning up old installation files... \c"
+	if rm -rf "$BASEDIR"; then
+		echo "ok"
+	else
+		echo "failed"
+		exit 1
+	fi
+
+	mkdir -p "$BASEDIR"
+	cd "$BASEDIR"
+
+	echo "- getting initial installation scripts:"
+
+	for GETME in $INSTALL_FILES; do
+		echo -e "  - "`echo $GETME | sed -e 's#^.*/##'`"... \c"
+		if get_file "$GETME"; then
+			echo "ok"
+		else
+			echo "failed"
+			exit 1
+		fi
+	done
+
+	echo "- starting install..."
+	run ./install.sh
+	if [ $? -gt 0 ]; then
+		echo "!!! INSTALLATION ABORTED !!!"
+	fi
+
+else
+
+	echo "- starting install..."
+	run `dirname $0`/install.sh
+	if [ $? -gt 0 ]; then
+		echo "!!! INSTALLATION ABORTED !!!"
+	fi
+
+fi
