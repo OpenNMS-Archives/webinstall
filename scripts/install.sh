@@ -17,6 +17,12 @@ OpenNMS Web Installer v0.1
 
 END_INTRO
 
+if [ `id -u` != 0 ]; then
+	echo "you must be root to run this script!"
+	echo ""
+	exit 1
+fi
+
 ##############################################################################
 # set up java path
 ##############################################################################
@@ -232,7 +238,7 @@ if [ "$INSTALL_METHOD" = "fink" ]; then
 	if [ `grep /opennms "$SOURCES_LIST" 2>/dev/null | wc -l` -eq 0 ]; then
 		echo "" >> "$SOURCES_LIST"
 		echo "# OpenNMS binary distribution" >> "$SOURCES_LIST"
-		echo "deb http://$HOST/apt $INSTALL_PLATFORM/opennms main" >> "$SOURCES_LIST"
+		echo "deb http://$HOST/apt $INSTALL_PLATFORM main" >> "$SOURCES_LIST"
 	fi
 elif [ `grep /opennms "$SOURCES_LIST" 2>/dev/null | grep -E '(stable|unstable|snapshot)' | wc -l` -eq 0 ]; then
 
