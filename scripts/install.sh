@@ -345,8 +345,8 @@ else
 END_WHICH_VERSION
 
 		STABLE_TREE="stable"
-		UNSTABLE_TREE="stable unstable"
-		SNAPSHOT_TREE="stable unstable snapshot"
+		UNSTABLE_TREE="unstable"
+		SNAPSHOT_TREE="snapshot"
 
 		DEFAULT_TREE="1"
 
