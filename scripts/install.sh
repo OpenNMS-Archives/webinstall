@@ -121,7 +121,7 @@ case "$INSTALL_PLATFORM" in
 		echo "notes for details."
 		echo ""
 
-		TOMCAT_VERSION=`rpm -q --queryformat '%{version}' 2>/dev/null`
+		TOMCAT_VERSION=`rpm -q --queryformat '%{version}' tomcat4  2>/dev/null`
 		if [ "$TOMCAT_VERSION" = "4.0.3" ]; then
 			echo "*** Warning: ***"
 			echo "You have a tomcat version that has issues with"
