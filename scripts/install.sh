@@ -294,11 +294,11 @@ elif [ "$INSTALL_METHOD" = "fink" ]; then
 fi
 
 if [ "$INSTALL_METHOD" = "urpmi" ]; then
-	# We only allow for the time being stable to be installed
+	# We only allow for the time being unstable to be installed
 	# experimental ...
 
 	echo -e "- adding in urpmi sources from OpenNMS Stable... \c";
-	urpmi.addmedia opennms ftp://ftp.opennms.org/pub/releases/opennms/stable/${INSTALL_PLATFORM}/RPMS with ./hdlist.cz
+	urpmi.addmedia opennms ftp://ftp.opennms.org/pub/releases/opennms/unstable/${INSTALL_PLATFORM}/RPMS with ./hdlist.cz
 	urpmi.update opennms > /dev/null 2>&1
 	success "ok"
 
