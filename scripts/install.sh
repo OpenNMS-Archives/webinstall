@@ -266,10 +266,28 @@ echo "apt-get update"
 apt-get update
 
 if [ "$INSTALL_TYPE" = "full" ]; then
-	PACKAGES="opennms opennms-webapp opennms-docs tomcat4 tomcat4-manual tomcat4-webapps rrdtool"
+	PACKAGES="opennms opennms-webapp opennms-docs"
 else
 	PACKAGES="opennms-webapp"
 fi
+
+# First, we install tomcat so we know the ordering is right.
+echo "apt-get install tomcat4 tomcat4-manual tomcat4-webapps rrdtool"
+apt-get -y install tomcat4 tomcat4-manual tomcat4-webapps rrdtool
+if [ $? -gt 0 ]; then
+	cat <<END
+
+  ERROR!!!  APT was unable to install your packages.
+  Most often this is because of a missing JDK.
+
+  Please resolve the issues listed above, and try again.
+
+END
+	exit 1
+fi
+echo
+
+# Then, install the OpenNMS packages.
 echo "apt-get install $PACKAGES"
 apt-get -y install $PACKAGES
 if [ $? -gt 0 ]; then
