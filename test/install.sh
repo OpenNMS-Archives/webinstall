@@ -350,7 +350,7 @@ cat << END_RELEASE_NOTES
   configuration instructions, for your platform.
 
   If you have any issues, feel free to post your question to the dicussion
-  list at http://www.opennms.org/mailman/listinfo/discuss -- a number of
+  list at http://lists.opennms.org/mailman/listinfo/discuss -- a number of
   regular users as well as OpenNMS employees and developers frequent the list.
   Also check the FAQ at http://www.opennms.org/users/faq/ for answers to
   common questions.
