@@ -324,7 +324,7 @@ if [ "$INSTALL_METHOD" = "urpmi" ]; then
 	success "ok"
 
 else
-	if [ `grep opennms "$SOURCES_LIST" 2>/dev/null | grep -E '(stable|unstable|snapshot)' | wc -l` -eq 0 -a "INSTALL_METHOD" = "rpm" ]; then
+	if [ `grep opennms "$SOURCES_LIST" 2>/dev/null | grep -E '(stable|unstable|snapshot)' | wc -l` -eq 0 -a "$INSTALL_METHOD" = "rpm" ]; then
 
 		cat << END_WHICH_VERSION
   It is time to set up the location that APT will install OpenNMS from.
